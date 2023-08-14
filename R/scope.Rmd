@@ -28,14 +28,6 @@ Advances in GPT models and capabilities
 
 My assumption is to rely on GPT's NLP interface and this product and wrap around it
 
-### Demo data
-
-```{r}
-demo_data <- tibble(x = rnorm(n = 50, mean = 5, sd = 0.2),
-       y = rnorm(n = 50, mean = 2, sd = 1)
-)
-```
-
 ## Review of Existing products
 
 ### OpenAI API key
@@ -79,8 +71,6 @@ remotes::install_github("umatter/OpenAIR")
 ```{r}
 library(TheOpenAIR)
 
-openai_api_key(Sys.getenv("OPENAI_API_KEY"))
-
 chat("What is a R package?")
 ```
 
@@ -88,12 +78,12 @@ chat("What is a R package?")
 
 Strengths:
 
-Caveats: Currently not running 😅
+Caveats: Currently not running 😅 I think you need a paid account for OpenAI
 
 
 ### RTutor
 
-Shiny wrapper around OpenAI. Voice enabled as an option
+RTutor is an AI-based app that can quickly generate and test R code. Powered by API calls to OpenAI's Davinci (ChatGPT's sibling), RTutor translates natural languages into R scripts, which are then executed within the Shiny platform. An R Markdown source file and HTML report can be generated.
 
 [RTutor app](https://rtutor.ai/)
 [Source code](https://github.com/gexijin/RTutor)
@@ -110,7 +100,7 @@ library(RTutor)
 RTutor::run_app()
 ```
 
-Prompt: Does height and age come from the same distribution?
+> Prompt: Is height and age related?
 
 Using the Loblolly example dataset
 
@@ -133,7 +123,7 @@ print(correlation)
 # 0.9899132
 ```
 
-Prompt: Does height and age come from the same distribution?
+> Prompt: Does height and age come from the same distribution?
 
 ```{r}
 # Load required library
@@ -160,9 +150,118 @@ print(t_test$p.value)
 
 Strengths: Pretty responsive, works well with example datasets
 
-Caveats: The 'Ask' tool is not working: API connection error
+Caveats: 
 
+- The 'Ask' tool is not working: API connection error
+- Some code is a little unneccessary e.g. `as.numeric(as.character(df_filtered$age)))`.
+- Responds in R code, no natural language reply, embedded in R code comments e.g.
+
+`# Interpret the p-value
+if (p_value < 0.05) {
+  interpretation <- "The p-value is less than 0.05, indicating strong evidence against the null hypothesis."
+} else {
+  interpretation <- "The p-value is greater than or equal to 0.05, indicating weak evidence against the null hypothesis."
+}
+`
 
 ### Chatlize.ai
 
-https://chatlize.ai/
+A "general data science platform" but almost exactly the same as RTutor. A shiny wrapper around OpenAI API. User must upload data. Same developer as RTutor. Source code not found.
+
+[Chatlize.ai app](https://chatlize.ai/)
+
+
+#### Demonstration
+
+I uploaded the Loblolly data as a .csv and asked:
+> Prompt: Is height and age related?
+
+```{r}
+# Load required library
+pacman::p_load(ggplot2)
+
+# Create a dataframe with height and age values
+data <- data.frame(height = c(155, 165, 170, 175, 180, 185, 190),
+                   age = c(20, 25, 30, 35, 40, 45, 50))
+
+# Calculate the correlation coefficient between height and age
+cor(data$height, data$age)
+```
+
+> Prompt: Does height and age come from the same distribution?
+
+```{r}
+# Load required library
+pacman::p_load(ggplot2)
+
+# Create a dataframe with height and age values
+data <- data.frame(height = c(155, 165, 170, 175, 180, 185, 190),
+                   age = c(20, 25, 30, 35, 40, 45, 50))
+
+# Perform a two-sample t-test to compare the height and age distributions
+t.test(data$height, data$age)
+```
+
+#### Evaluation
+
+Strengths: 
+
+Caveats: 
+
+- Not intuitive interface
+- Replies in code
+- Loads unnecessary libraries
+
+### askgpt
+
+#### Installation
+
+```{r}
+install.packages("askgpt")
+```
+
+#### Demonstration
+
+```{r}
+library(askgpt)
+
+login()
+
+askgpt("What is a R package")
+```
+
+#### Evaluation
+
+Strengths: Easy to use and understand and better error handling than OpenAir, Add ins from toolbar (CMD/CTRL+SHIFT+P. Type in gpt and it can annotate code/write tests etc)
+
+Caveats: Not analytical or statistical per se but actually more for R package development
+
+## gptstudio
+
+RStudio plugin + Shiny interface to ChatGPT 
+
+[Website](https://michelnivard.github.io/gptstudio/)
+[Source code](https://github.com/MichelNivard/gptstudio)
+
+#### Installation
+
+```{r}
+install.packages("gptstudio")
+```
+
+#### Demonstration
+
+Once installed, click ChatGPT and Shiny interface will come up - ask away! 
+
+> How do I interpet a P value of 0.008?
+
+Crashes
+
+#### Evaluation
+
+Strengths: 
+
+- Can set tidyverse style, whether or not usre is a beginner, different API's e.g.
+- Nice interface
+- Runs as a background job too - so frees up console
+- Different language support
