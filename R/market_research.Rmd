@@ -1,0 +1,490 @@
+---
+title: "Scoping for Automated Analyses in R"
+date: "`r Sys.Date()`"
+author: Fonti Kar
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+)
+
+# install.packages("pacman")
+pacman::p_load(dplyr, usethis)
+```
+
+
+## Goal
+
+Using R to do "automatic analyses" with minimal input (or knowledge) from the user. Likely to have a natural language interface with the user (though probably the NL part can be ignored for now). 
+
+Some examples: 
+
+- the user might type in "Are X and Y the same?" or "Are X and Y related?"
+- "Do X and Y have the same distribution" or "Do X and Y have different means?".
+
+There are lots of statistical tests and modelling that an expert might then go through to come up with an answer that can then be reported back to the user. The idea is to figure out a framework that the "autonomous analyst" could do all of this (in a smart way) in the background, very quickly, and then give the result (in plain language) back to the user. I'm looking to get more substantial funding to develop this in the future, but a small pilot study under your current role could be very helpful, especially given your expertise in R. The pilot study could even just be brainstorming how it might work as a software product.
+
+## OpenAI GPT models and capabilities
+
+Current AI tools are wrappers around GPT models.
+There are limitations with GPT models. All of them are trained up to Sept 2021 and are optimised for chat inputs and outputs. This means that no direct ability to upload data for analysis. 
+
+GPT 4 is a major upgrade to 3 (accepting text inputs and emitting text outputs today, with image inputs coming in the future) but requires a paid account. 
+
+## Review of existing products that uses GPT models 
+
+Below is some demo and evaluation of products that built around GPT models via OpenAI API
+
+### OpenAI API key
+
+Many tools that uses the GPT models requires an API key. To request for one, you will first need to [sign up](https://platform.openai.com/signup?launch) for an account.
+
+Once you have logged in, you can [create API keys](https://platform.openai.com/account/api-keys) under the user menu. 
+
+Add the OpenAI API key in R in your global environment using the following. Note that you will need to restart your R/RStudio for the changes to take effect
+
+```{r, eval=FALSE}
+install.packages("usethis")
+usethis::edit_r_environ()
+
+# Paste your key in the .Renviron file using the format
+# OPENAI_API_KEY="your-unique-api-key"
+```
+
+To call your API key:
+
+```{r, eval=FALSE}
+Sys.getenv("OPENAI_API_KEY")
+```
+
+### OpenAir
+
+Looks like a simply wrapper around ChatGPT where you can prompt the model in the console
+
+[Documentation](https://umatter.github.io/OpenAIR/)
+[GitHub](https://github.com/umatter/OpenAIR)
+
+#### Installation 
+
+```{r, eval=FALSE}
+#install.packages("remotes")
+remotes::install_github("umatter/OpenAIR")
+```
+
+#### Demonstration
+
+```{r}
+library(TheOpenAIR)
+
+count_tokens("What is a R package?") # Number of tokens you will use
+```
+
+```{r}
+demo_chat <- TheOpenAIR::start_chat()
+demo_chat_id <- demo_chat@chatlog_id
+```
+
+Start with something simple
+```{r}
+# Determine how many tokens this query will require
+count_tokens("Tell me about the Loblolly dataset") 
+
+chat("Tell me about the Loblolly dataset", chatlog_id = demo_chat_id)
+
+get_chatlog(x = demo_chat_id) 
+```
+
+Add some data into chatlog
+
+```{r}
+# Demo dataset
+Loblolly_with_groups <- Loblolly |> 
+  mutate(age_group = case_when(age <= 5 ~ "young",
+                               age > 5 & age <= 10 ~ "middle",
+                               age > 10 ~ "old")) |> 
+  arrange(desc(age_group))
+
+# Formulating question
+question_1 <- paste("What is the relationship between height and age in the following dataset",  df_to_csv(Loblolly_with_groups))
+question_1 |> cat()
+question_1 |> count_tokens()
+
+chat(question_1, demo_chat_id)
+
+get_chatlog(x = demo_chat_id) 
+```
+
+```{r}
+Loblolly_with_groups <- Loblolly |> 
+  mutate(age_group = case_when(age <= 5 ~ "young",
+                               age > 5 & age <= 10 ~ "middle",
+                               age > 10 ~ "old")) |> 
+  arrange(desc(age_group))
+
+# Formulate data
+question_2 <- paste(Loblolly_with_groups |> df_to_csv())
+question_2 |> cat()
+question_2 |> count_tokens()
+
+# Format for chatlog
+question_2_df <- data.frame(role = "user",
+                            content = question_2)
+
+# Add to chat log
+clear_chatlog(demo_chat_id)
+get_chatlog(demo_chat_id)
+add_to_chatlog(question_2_df, demo_chat_id)
+
+# Chat
+chat("Does the old and young group have different means in height", demo_chat_id)
+chat("Can you show me how to test whether the old and young group have different means in height", demo_chat_id)
+chat("How to test whether the old and young group have different means in height in R", demo_chat_id)
+```
+
+#### Evaluation
+
+Strengths: 
+
+- Simply, R code wrapper, instead of going to ChatGPT's website
+
+Caveats:
+
+- Needs an API key. Need to pay for tokens once freebies are expired
+- There is some delay 5 secs to get response
+- No helpful documentation of use cases that include R data and analysis help using platform
+- No direct input of datasets for direct interrogation
+- Workflow to include data for ChatGPT to interrogate is pretty messy and it asks you to check
+
+
+### RTutor
+
+RTutor is an AI-based app that can quickly generate and test R code. Powered by API calls to OpenAI's Davinci (ChatGPT's sibling), RTutor translates natural languages into R scripts, which are then executed within the Shiny platform. An R Markdown source file and HTML report can be generated.
+
+[RTutor app](https://rtutor.ai/)
+[Source code](https://github.com/gexijin/RTutor)
+
+```{r, eval=FALSE}
+remotes::install_github("gexijin/RTutor")
+```
+
+#### Demonstration
+
+```{r, eval=FALSE}
+library(RTutor)
+
+RTutor::run_app()
+```
+
+> Prompt: Is height and age related?
+
+Using the Loblolly example dataset which is included in the dropdown menu
+
+Response:
+
+```{r, eval=FALSE}
+# Load required library
+library(dplyr)
+
+# Filter the data frame to include only the relevant columns
+df_filtered <- df %>% select(height, age)
+
+# Convert the height column to numeric
+df_filtered$height <- as.numeric(as.character(df_filtered$height))
+
+# Calculate the correlation coefficient between height and age
+correlation <- cor(df_filtered$height, as.numeric(as.character(df_filtered$age)))
+
+# Print the correlation coefficient
+print(correlation)
+
+# 0.9899132
+```
+
+> Prompt: Does height and age come from the same distribution?
+
+Response:
+
+```{r, eval=FALSE}
+# Load required library
+library(dplyr)
+library(ggplot2)
+
+# Filter the data frame to include only the relevant columns
+df_filtered <- df %>% select(height, age)
+
+# Convert the height and age columns to numeric
+df_filtered$height <- as.numeric(as.character(df_filtered$height))
+df_filtered$age <- as.numeric(as.character(df_filtered$age))
+
+# Perform a two-sample t-test to compare the means of height and age
+t_test <- t.test(df_filtered$height, df_filtered$age)
+
+# Print the p-value from the t-test
+print(t_test$p.value)
+
+# 1.456461e-12
+```
+
+#### Evaluation
+
+Strengths: Pretty responsive, works well with example datasets, FREE!
+
+Caveats: 
+
+- The 'Ask' tool is not working: API connection error
+- Some code is a little unnecessary e.g. `as.numeric(as.character(df_filtered$age)))`.
+- Responds in R code, no natural language reply, embedded in R code comments e.g.
+
+`# Interpret the p-value
+if (p_value < 0.05) {
+  interpretation <- "The p-value is less than 0.05, indicating strong evidence against the null hypothesis."
+} else {
+  interpretation <- "The p-value is greater than or equal to 0.05, indicating weak evidence against the null hypothesis."
+}
+`
+
+### Chatlize.ai
+
+A "general data science platform" but almost exactly the same as RTutor. A shiny wrapper around OpenAI API. User must upload data. Same developer as RTutor. Source code not found.
+
+[Chatlize.ai app](https://chatlize.ai/)
+
+
+#### Demonstration
+
+I uploaded the Loblolly data as a .csv and asked:
+> Prompt: Is height and age related?
+
+Response:
+
+```{r, eval=FALSE}
+# Load required library
+pacman::p_load(ggplot2)
+
+# Create a dataframe with height and age values
+data <- data.frame(height = c(155, 165, 170, 175, 180, 185, 190),
+                   age = c(20, 25, 30, 35, 40, 45, 50))
+
+# Calculate the correlation coefficient between height and age
+cor(data$height, data$age)
+```
+
+> Prompt: Does height and age come from the same distribution?
+
+Response:
+
+```{r, eval=FALSE}
+# Load required library
+pacman::p_load(ggplot2)
+
+# Create a dataframe with height and age values
+data <- data.frame(height = c(155, 165, 170, 175, 180, 185, 190),
+                   age = c(20, 25, 30, 35, 40, 45, 50))
+
+# Perform a two-sample t-test to compare the height and age distributions
+t.test(data$height, data$age)
+```
+
+#### Evaluation
+
+Strengths: 
+
+Caveats: 
+
+- Not intuitive interface
+- Replies in code like RTutor
+- Loads unnecessary libraries e.g ggplot2 for a t.test
+
+### askgpt
+
+[GitHub](https://github.com/JBGruber/askgpt)
+[r-universe](https://jbgruber.r-universe.dev/askgpt)
+
+#### Installation
+
+```{r, eval=FALSE}
+install.packages("askgpt")
+```
+
+#### Demonstration
+
+```{r}
+library(askgpt)
+
+# Set up login access details - unnecessary step if API key is in your environment
+login(Sys.getenv("OPENAI_API_KEY"))
+
+# Create a new convo so it doesn't interfere with other chats
+new_conversation()
+
+# Configure GPT 
+options(askgpt_config = "Where relevant, provide R code to my questions")
+```
+
+```{r, eval=FALSE}
+askgpt("Tell me about the Loblolly dataset")
+
+# ✔ GPT is thinking ⠹ [16.5s]
+# 
+# ── Answer ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# The Loblolly dataset is a well-known example in the field of statistics and experimental design. It is named after the
+# Loblolly pine tree (Pinus taeda), which is a common tree species in the southeastern United States.
+# 
+# The dataset consists of measurements taken on 84 Loblolly pine seedlings, which were planted in a randomized complete
+# block design. The seedlings were initially assigned to four different plots, each with 21 seedlings, making a total of
+# four blocks.
+# 
+# The main purpose of the study was to investigate the growth of the Loblolly pines and determine the effects of fertilizer
+# treatment on their growth. In this experiment, three different fertilizer treatments were used: no fertilizer (control
+# group), a moderate amount of fertilizer, and a high amount of fertilizer.
+# 
+# Various measurements were collected on each seedling, including the height of the tree in inches after six years of growth
+# (Height), the diameter of the tree at 4.5 feet in inches (Diameter), and the volume of the tree in cubic feet (Volume).
+# Additionally, the fertilizer treatment assigned to each seedling (Treatment) and the plot in which it was planted (Block)
+# were recorded.
+# 
+# The Loblolly dataset has been widely used to teach statistical principles and experimental design, as it provides a rich
+# example for various statistical analyses. Researchers often explore the effects of the fertilizer treatment on tree growth
+# and investigate relationships between different variables within the dataset.
+# 
+# The dataset's popularity is due to its simplicity, yet it offers valuable insights into experimental design and
+# statistical analysis techniques. The Loblolly dataset continues to be a valuable resource for researchers and
+# statisticians to explore various statistical methods, including analysis of variance (ANOVA), regression, and graphical
+# techniques.
+```
+
+```{r, eval=FALSE}
+askgpt("What is the relationship between age and height of trees?")
+
+# ✔ GPT is thinking ⠏ [13.8s]
+# 
+# ── Answer ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+# The relationship between age and height of trees can vary depending on the species and other environmental factors.
+# In general, younger trees tend to be shorter in height compared to older trees.
+# 
+# It is important to note that the relationship between age and height may not always be linear. Some tree species show
+# rapid growth in their early years and then slow down as they reach maturity, while others continue to grow steadily
+# throughout their lifespan.
+# 
+# To analyze the relationship between age and height of trees, you can use scatter plots or regression analysis. Here
+# is an example using R:
+# 
+# # Generate example data
+# age <- c(5, 10, 15, 20, 25, 30, 35, 40)
+# height <- c(3, 6, 9, 12, 15, 18, 20, 22)
+# 
+# # Plot scatter plot
+# plot(age, height, xlab = "Age (years)", ylab = "Height (m)", main = "Age vs Height of Trees")
+# 
+# # Fit a linear regression model
+# lm_model <- lm(height ~ age)
+# 
+# # Add regression line to the plot
+# abline(lm_model, col = "red")
+# 
+# This code will create a scatter plot of age against height and fit a linear regression line to the data. The
+# regression line represents the average relationship between age and height. You can also use other regression models,
+# such as quadratic or exponential, depending on the shape of the data.
+```
+
+#### Evaluation
+
+Strengths: 
+
+- Easy to use and understand and better error handling than OpenAir
+- Generally nicer interface than OpenAir
+- Add ins from toolbar (CMD/CTRL+SHIFT+P. Type in gpt and it can annotate code/write tests etc)
+- Great that you can 'configure' GPT, see their README at their repo.
+
+Caveats: 
+
+- Not analytical or statistical per se but actually more for R package development
+- Code recommendations are not entirely correct `data(loblolly)`
+- Interference with other chat logs
+- Not sure how to read in data
+
+### gptstudio
+
+RStudio plugin + Shiny interface to ChatGPT 
+
+[Website](https://michelnivard.github.io/gptstudio/)
+[Source code](https://github.com/MichelNivard/gptstudio)
+
+#### Installation
+
+```{r, eval=FALSE}
+install.packages("gptstudio")
+```
+
+#### Demonstration
+
+1. Go to Addins menu on the top of RStudio
+2. Search for or Scroll down to `GPTSTUDIO`
+3. Click on ChatGPT and it will open interface in Viewer Pane 
+
+> How do I interpet a P value of 0.008?
+
+#### Evaluation
+
+Strengths: 
+
+- Can set tidyverse style, whether or not user is a beginner, different API's e.g.
+- Nice interface
+- Runs as a background job too - so frees up console
+- Different language support
+- Different AI support
+
+Caveats: 
+- Awful output in background job but I suppose you can toggle away
+- Similar to others above, loads libraries that are not necessary
+- No easy entry to get data into ChatGPT (Will require tokens)
+
+
+## Wolfram Alpha
+
+### Impression 
+Seems to overlap the most with goals of this project. It accepts tabular inputs and is capable of data analysis and visualisation. 
+
+The [interface](https://www.wolframalpha.com/) is not great with natural language. 
+Asking it: "What is the relationship between height and seed in the Loblolly dataset", leads it down a rabbit hole of what is "relationship". 
+
+Using their sample csv data (Months.csv), asking it to run a linear model for Month (column 1) and Amount (Columm 2) fails. Alpha would run a model for Amount and Column 3
+
+
+## Wolfram Language
+
+Looks very intimidating! Uses symbolic language to do some really advanced looking analyse e.g machine learning, image analysis.
+
+Here is an [overview](https://reference.wolfram.com/language/guide/ScientificDataAnalysis.html) of its current 'scientific data analysis' suite
+
+### Impression
+
+The [language](https://reference.wolfram.com/language/guide/LanguageOverview.html) itself is really clunky and must be very exact for anything to work. 
+
+## OpenAI plug-ins
+
+OpenAI models are currently trained on a specific subset of data. Plug-ins allow the models to train on very specific data to allow more targeted usage and utilise the human-like natural language replies. 
+
+There is a ChatGPT plugin for [Wolfram Alpha and Wolfram Language](https://writings.stephenwolfram.com/2023/03/chatgpt-gets-its-wolfram-superpowers/) and it can do pretty impressive analyses in a more human like manner which I think is really the best of all products combined.
+
+Similarly, Open AI's [Code interpreter](https://www.pluralsight.com/resources/blog/data/chatgpt-code-interpreter-plugin-guide) plugin looks super promising but requires a paid account. Code interpreter can handle data analysis queries and currently works with Python code only. Demo found [here](https://openai.com/blog/chatgpt-plugins#code-interpreter)
+
+## datagran
+
+[https://www.datagran.io/](https://www.datagran.io/)
+
+Specifically a data science specific platform for organisations. 
+
+Drag and drop interface to connect certain data storage [integrations](https://www.datagran.io/integrations) (e.g MySQL,SAP, AWS bucket, Google Sheets)
+to natural language 'operators'. Their one is called [Jedi](https://www.datagran.io/meet-jedi).
+
+Once you have configured your pipeline, you can as Jedi using NL to do your analyses.
+
+Demo [here](https://twitter.com/charlesmendez/status/1684270804551233536)
+
+

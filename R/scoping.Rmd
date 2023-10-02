@@ -1,0 +1,51 @@
+---
+title: "Scoping"
+author: "Fonti and Payal"
+date: "2023-09-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# install.packages("pacman")
+pacman::p_load(dplyr)
+```
+
+## Goal
+
+Using R to do "automatic analyses" with minimal input (or knowledge) from the user. Likely to have a natural language interface with the user (though probably the NL part can be ignored for now). 
+
+Some examples: 
+
+- the user might type in "Are X and Y the same?" or "Are X and Y related?"
+- "Do X and Y have the same distribution" or "Do X and Y have different means?".
+
+There are lots of statistical tests and modelling that an expert might then go through to come up with an answer that can then be reported back to the user. The idea is to figure out a framework that the "autonomous analyst" could do all of this (in a smart way) in the background, very quickly, and then give the result (in plain language) back to the user. I'm looking to get more substantial funding to develop this in the future, but a small pilot study under your current role could be very helpful, especially given your expertise in R. The pilot study could even just be brainstorming how it might work as a software product.
+
+## Resources
+
+https://blogs.rstudio.com/ai/posts/2020-07-30-state-of-the-art-nlp-models-from-r/
+https://www.kaggle.com/code/henry090/transformers/notebook
+https://www.kaggle.com/code/frankyd/tidymodels-with-nlp
+https://r-text.org/
+
+https://medium.com/@ms-analytics/how-to-make-an-nlp-model-a-step-by-step-guide
+
+The first step is to collect the data that you want to process. This could be a large dataset of text or audio data or a smaller dataset of text and audio combined. Once the data has been collected, it must be pre-processed to prepare it for the model. This includes removing any stopwords, punctuation, and special characters, as well as tokenizing the data into individual words or phrases.
+
+Once the data has been pre-processed, it is ready to be used in the model. To create an NLP model, you must choose a neural network architecture such as a recurrent neural network (RNN) or a convolutional neural network (CNN).
+
+The next step is to train the model on the dataset. During training, the model will learn to identify patterns and correlations in the data. Once the model has been trained, it can be used to process new data or to produce predictions or other outputs.
+
+1. Install the required libraries and tools for your language. 2. Create a training dataset. 3. Extract the relevant knowledge from the dataset. 4. Create an architecture for the neural network. 5. Use transfer learning to incorporate the trained model into a new dataset. 6. Train the neural network. 7. Test your model on the new dataset. 8. Deploy your model.
+
+https://cobusgreyling.medium.com/create-your-own-open-source-natural-language-processing-api-53c8669613a
+
+https://www.analyticsvidhya.com/blog/2021/10/complete-guide-to-build-your-ai-chatbot-with-nlp-in-python/
+
+### In R 
+https://www.datacamp.com/tutorial/ML-NLP-lyric-analysis
+https://burtmonroe.github.io/TextAsDataCourse/Notes/RText/
+
+Wow a free course: https://www.linkedin.com/learning/introduction-to-nlp-using-r/welcome-to-natural-language-processing-with-r?u=2087740
